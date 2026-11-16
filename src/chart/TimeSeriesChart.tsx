@@ -1,11 +1,12 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SAMPLE_INTERVAL_MS, yExtent, type SeriesData } from '../data/generate';
 import { afterNextPaint, markPainted } from '../perf';
+import { CanvasChart } from './CanvasChart';
 import { SvgChart } from './SvgChart';
 import { BUTTON_ZOOM, useViewport } from './useViewport';
 import type { Bounds } from './viewport';
 
-export type Renderer = 'svg';
+export type Renderer = 'svg' | 'canvas';
 
 export const SERIES_COLORS = ['#0b62a4', '#b4372a', '#2e7d32'];
 const HEIGHT = 420;
@@ -39,6 +40,8 @@ export function TimeSeriesChart({ data, renderer }: Props) {
   // we then wait for that frame to be painted and record the render time.
   const onDrawn = useCallback(() => afterNextPaint(markPainted), []);
 
+  const rendererProps = { data, colors: SERIES_COLORS, view, yDomain, width, height: HEIGHT, onDrawn };
+
   return (
     <div className="chart">
       <div className="toolbar">
@@ -56,17 +59,8 @@ export function TimeSeriesChart({ data, renderer }: Props) {
         </span>
       </div>
       <div ref={plotRef} className="plot" data-testid="plot" style={{ height: HEIGHT }}>
-        {renderer === 'svg' && (
-          <SvgChart
-            data={data}
-            colors={SERIES_COLORS}
-            view={view}
-            yDomain={yDomain}
-            width={width}
-            height={HEIGHT}
-            onDrawn={onDrawn}
-          />
-        )}
+        {renderer === 'svg' && <SvgChart {...rendererProps} />}
+        {renderer === 'canvas' && <CanvasChart {...rendererProps} />}
       </div>
       <ul className="legend">
         {data.names.map((name, i) => (

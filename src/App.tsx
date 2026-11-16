@@ -3,7 +3,7 @@ import { generateSeries, type SeriesData } from './data/generate';
 import { TimeSeriesChart, type Renderer } from './chart/TimeSeriesChart';
 import { markDataReady, perf } from './perf';
 
-const RENDERERS: Renderer[] = ['svg'];
+const RENDERERS: Renderer[] = ['svg', 'canvas'];
 const SIZES = [1_000_000, 5_000_000];
 
 function readParams() {
