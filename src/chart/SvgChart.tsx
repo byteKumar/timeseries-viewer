@@ -1,6 +1,6 @@
 import { memo, useLayoutEffect, useMemo } from 'react';
 import type { SeriesData } from '../data/generate';
-import type { View } from './viewport';
+import type { RendererProps } from './types';
 
 /**
  * Baseline renderer: one <path> per series containing EVERY point.
@@ -23,35 +23,29 @@ export function buildSvgPath(x: Float64Array, y: Float64Array): string {
   return parts.join('');
 }
 
-interface Props {
-  data: SeriesData;
-  colors: string[];
-  view: View;
-  yDomain: [number, number];
-  width: number;
-  height: number;
-  onDrawn: () => void;
-}
-
-const Paths = memo(function Paths({ data, colors }: { data: SeriesData; colors: string[] }) {
+const Paths = memo(function Paths({ data, colors, visible }: { data: SeriesData; colors: string[]; visible: boolean[] }) {
   const ds = useMemo(() => data.ys.map((y) => buildSvgPath(data.x, y)), [data]);
   return (
     <>
       {ds.map((d, i) => (
-        <path key={i} d={d} fill="none" stroke={colors[i]} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        // Hidden with display:none rather than unmounted, so showing it again doesn't re-parse the path.
+        <path key={i} d={d} fill="none" stroke={colors[i]} strokeWidth={1} vectorEffect="non-scaling-stroke" display={visible[i] ? undefined : 'none'} />
       ))}
     </>
   );
 });
 
-export function SvgChart({ data, colors, view, yDomain, width, height, onDrawn }: Props) {
-  useLayoutEffect(onDrawn, [data, onDrawn]);
+export function SvgChart({ data, colors, view, yDomain, width, height, visible, onDrawn, linesRef }: RendererProps & { data: SeriesData }) {
+  useLayoutEffect(() => {
+    linesRef.current = data.ys.map((y) => ({ x: data.x, y }));
+    onDrawn();
+  }, [data, onDrawn, linesRef]);
   const t0 = data.x[0];
   const [lo, hi] = yDomain;
   const viewBox = `${(view.x0 - t0) / 1000} ${-hi} ${(view.x1 - view.x0) / 1000} ${hi - lo}`;
   return (
-    <svg width={width} height={height} viewBox={viewBox} preserveAspectRatio="none" style={{ display: 'block' }}>
-      <Paths data={data} colors={colors} />
+    <svg width={width} height={height} viewBox={viewBox} preserveAspectRatio="none" style={{ display: 'block' }} aria-hidden="true">
+      <Paths data={data} colors={colors} visible={visible} />
     </svg>
   );
 }

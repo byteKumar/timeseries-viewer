@@ -28,7 +28,7 @@ select {
   font: inherit;
   padding: 4px 10px;
 }
-button[aria-pressed='true'] {
+.controls button[aria-pressed='true'] {
   background: #1a1a1a;
   color: #fff;
 }
@@ -45,13 +45,63 @@ button[aria-pressed='true'] {
 }
 .legend {
   display: flex;
-  gap: 16px;
-  list-style: none;
-  padding: 0;
+  gap: 8px;
+  margin-top: 8px;
 }
 .swatch {
   display: inline-block;
   width: 12px;
   height: 12px;
   vertical-align: middle;
+}
+.plot {
+  position: relative;
+}
+.plot.dragging {
+  cursor: grabbing;
+}
+.crosshair-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.crosshair {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  background: #555;
+}
+.dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+  box-sizing: border-box;
+}
+.tooltip {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 200px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #767676;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.tooltip-time {
+  color: #444;
+  margin-bottom: 2px;
+}
+.series-toggle .swatch {
+  border: 2px solid;
+  box-sizing: border-box;
+}
+.series-toggle[aria-pressed='false'] {
+  color: #555;
+  text-decoration: line-through;
 }

@@ -19,3 +19,12 @@ export function visibleRange(x: ArrayLike<number>, x0: number, x1: number): [num
   const end = Math.min(x.length, lowerBound(x, x1) + 1);
   return [start, end];
 }
+
+/** Index of the point whose x is closest to `value` (-1 for an empty array). */
+export function nearestIndex(x: ArrayLike<number>, value: number): number {
+  if (x.length === 0) return -1;
+  const i = lowerBound(x, value);
+  if (i === 0) return 0;
+  if (i === x.length) return x.length - 1;
+  return value - x[i - 1] <= x[i] - value ? i - 1 : i;
+}

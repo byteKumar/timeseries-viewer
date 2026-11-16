@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type RefObject } from 'react';
-import { panView, zoomView, type Bounds, type View } from './viewport';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { clampView, panView, zoomView, type Bounds, type View } from './viewport';
 
 /** Zoom factor per wheel "notch" (deltaY = 100 -> about 1.22x). */
 const WHEEL_SENSITIVITY = 0.002;
@@ -10,15 +10,18 @@ export const BUTTON_ZOOM = 0.5;
  * Wheel uses a native non-passive listener because React's onWheel is passive
  * and can't call preventDefault (which stops the page from scrolling).
  */
-export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Bounds) {
-  const [view, setView] = useState<View>({ x0: bounds.min, x1: bounds.max });
+export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Bounds, initial: View | null = null) {
+  // Start from the permalink's range if there is one (clamped: URLs are user input).
+  const [view, setView] = useState<View>(() => (initial ? clampView(initial, bounds) : { x0: bounds.min, x1: bounds.max }));
+  const [dragging, setDragging] = useState(false);
 
-  // New data -> show all of it. Keep the same object if nothing changed, so
-  // effects that depend on `view` (like a worker request) don't fire twice.
-  useEffect(
-    () => setView((v) => (v.x0 === bounds.min && v.x1 === bounds.max ? v : { x0: bounds.min, x1: bounds.max })),
-    [bounds.min, bounds.max],
-  );
+  // Different data later on -> show all of it. Skipped on mount, so the initial view survives.
+  const lastBounds = useRef(bounds);
+  useEffect(() => {
+    if (lastBounds.current === bounds) return;
+    lastBounds.current = bounds;
+    setView({ x0: bounds.min, x1: bounds.max });
+  }, [bounds]);
 
   useEffect(() => {
     const el = plotRef.current;
@@ -35,6 +38,7 @@ export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Boun
     const onDown = (e: PointerEvent) => {
       dragX = e.clientX;
       el.setPointerCapture(e.pointerId);
+      setDragging(true);
     };
     const onMove = (e: PointerEvent) => {
       if (dragX === null) return;
@@ -45,6 +49,7 @@ export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Boun
     };
     const onUp = () => {
       dragX = null;
+      setDragging(false);
     };
 
     el.addEventListener('wheel', onWheel, { passive: false });
@@ -64,5 +69,5 @@ export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Boun
   const zoomBy = useCallback((factor: number) => setView((v) => zoomView(v, factor, 0.5, bounds)), [bounds]);
   const reset = useCallback(() => setView({ x0: bounds.min, x1: bounds.max }), [bounds]);
 
-  return { view, zoomBy, reset };
+  return { view, dragging, zoomBy, reset };
 }

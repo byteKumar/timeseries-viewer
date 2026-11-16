@@ -1,32 +1,39 @@
-import { useEffect, useState } from 'react';
-import { generateSeries } from './data/generate';
-import { describe, type Dataset } from './data/dataset';
-import { DownsampleClient } from './lttb/client';
+import { useCallback, useEffect, useState } from 'react';
 import { TimeSeriesChart, type Renderer } from './chart/TimeSeriesChart';
+import type { View } from './chart/viewport';
+import { describe, type Dataset } from './data/dataset';
+import { generateSeries } from './data/generate';
+import { DownsampleClient } from './lttb/client';
 import { markDataReady, perf } from './perf';
+import { parseUrl, serializeUrl } from './permalink';
 
 const RENDERERS: Renderer[] = ['lttb', 'canvas', 'svg'];
 const SIZES = [1_000_000, 5_000_000];
 
 function readParams() {
-  const p = new URLSearchParams(location.search);
-  const r = p.get('renderer') as Renderer | null;
-  const n = Number(p.get('n'));
+  const u = parseUrl(location.search);
   return {
-    renderer: r && RENDERERS.includes(r) ? r : RENDERERS[0],
-    n: SIZES.includes(n) ? n : SIZES[0],
+    renderer: RENDERERS.includes(u.renderer as Renderer) ? (u.renderer as Renderer) : RENDERERS[0],
+    n: u.n !== null && SIZES.includes(u.n) ? u.n : SIZES[0],
   };
+}
+
+interface Loaded {
+  dataset: Dataset;
+  initialView: View | null;
+  initialVisible: boolean[] | null;
 }
 
 export function App() {
   const [{ renderer, n }, setParams] = useState(readParams);
-  const [dataset, setDataset] = useState<Dataset | null>(null);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
 
   useEffect(() => {
-    setDataset(null);
+    setLoaded(null);
     let client: DownsampleClient | null = null;
     // Yield one tick so "Generating…" paints before the main thread is busy.
     const t = setTimeout(() => {
+      const url = parseUrl(location.search); // read the permalink's range and series now
       const t0 = performance.now();
       const d = generateSeries(n);
       perf.genMs = performance.now() - t0;
@@ -34,13 +41,15 @@ export function App() {
       perf.renderer = renderer;
       const meta = describe(d); // must run before the arrays are transferred away
       markDataReady();
+      let dataset: Dataset;
       if (renderer === 'lttb') {
         client = new DownsampleClient();
         client.load(d); // d.x and d.ys are detached after this line
-        setDataset({ meta, raw: null, client });
+        dataset = { meta, raw: null, client };
       } else {
-        setDataset({ meta, raw: d, client: null });
+        dataset = { meta, raw: d, client: null };
       }
+      setLoaded({ dataset, initialView: url.view, initialVisible: url.visible });
     }, 0);
     return () => {
       clearTimeout(t);
@@ -49,12 +58,14 @@ export function App() {
   }, [n, renderer]);
 
   const update = (next: { renderer?: Renderer; n?: number }) => {
-    const p = new URLSearchParams(location.search);
-    if (next.renderer) p.set('renderer', next.renderer);
-    if (next.n) p.set('n', String(next.n));
-    history.replaceState(null, '', `?${p}`);
+    // A new size has a different time range, so drop the old range from the URL.
+    history.replaceState(null, '', serializeUrl(location.search, { ...next, ...(next.n ? { view: null } : {}) }) || location.pathname);
     setParams(readParams());
   };
+
+  const onStateChange = useCallback((s: { view: View; visible: boolean[] }) => {
+    history.replaceState(null, '', serializeUrl(location.search, { n, renderer, view: s.view, visible: s.visible }));
+  }, [n, renderer]);
 
   return (
     <main>
@@ -75,7 +86,17 @@ export function App() {
         </label>
         <span>3 series × {n.toLocaleString('en-US')} points each</span>
       </p>
-      {dataset ? <TimeSeriesChart dataset={dataset} renderer={renderer} /> : <p role="status">Generating data…</p>}
+      {loaded ? (
+        <TimeSeriesChart
+          dataset={loaded.dataset}
+          renderer={renderer}
+          initialView={loaded.initialView}
+          initialVisible={loaded.initialVisible}
+          onStateChange={onStateChange}
+        />
+      ) : (
+        <p role="status">Generating data…</p>
+      )}
     </main>
   );
 }
