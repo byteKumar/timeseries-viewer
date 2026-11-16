@@ -1,6 +1,7 @@
 import { useEffect, useState, type MutableRefObject, type RefObject } from 'react';
 import { nearestIndex } from '../lttb/search';
 import type { Line } from './drawCanvas';
+import type { Cursor } from './keyboard';
 import type { View } from './viewport';
 
 interface Props {
@@ -15,6 +16,8 @@ interface Props {
   visible: boolean[];
   /** Hide while dragging: the tooltip would just chase the cursor. */
   suppressed: boolean;
+  /** Keyboard cursor: shown when the mouse isn't over the plot. */
+  pinned: Cursor | null;
 }
 
 export const formatTime = (ms: number) => new Date(ms).toISOString().slice(11, 23);
@@ -25,7 +28,7 @@ export const formatTime = (ms: number) => new Date(ms).toISOString().slice(11, 2
  * currently on screen: the raw data for SVG/canvas, the LTTB output for the
  * worker renderer (the raw data lives in the worker).
  */
-export function Crosshair({ plotRef, linesRef, view, yDomain, width, height, names, colors, visible, suppressed }: Props) {
+export function Crosshair({ plotRef, linesRef, view, yDomain, width, height, names, colors, visible, suppressed, pinned }: Props) {
   const [px, setPx] = useState<number | null>(null);
 
   useEffect(() => {
@@ -41,10 +44,11 @@ export function Crosshair({ plotRef, linesRef, view, yDomain, width, height, nam
     };
   }, [plotRef]);
 
-  if (px === null || suppressed || width === 0) return null;
-
   const span = view.x1 - view.x0;
-  const t = view.x0 + (px / width) * span;
+  // The mouse wins over the keyboard cursor while it is over the plot.
+  const at = px ?? (pinned ? ((pinned.t - view.x0) / span) * width : null);
+  if (at === null || suppressed || width === 0) return null;
+  const t = view.x0 + (at / width) * span;
   const [lo, hi] = yDomain;
   const points = linesRef.current.flatMap((line, s) => {
     if (!visible[s] || line.x.length === 0) return [];
@@ -52,22 +56,22 @@ export function Crosshair({ plotRef, linesRef, view, yDomain, width, height, nam
     return [{ s, x: line.x[i], y: line.y[i] }];
   });
   if (points.length === 0) return null;
-  const flip = px > width - 220;
+  const flip = at > width - 220;
 
   return (
     <div className="crosshair-layer" aria-hidden="true">
-      <div className="crosshair" style={{ transform: `translateX(${px}px)`, height }} />
+      <div className="crosshair" style={{ transform: `translateX(${at}px)`, height }} />
       {points.map((p) => (
         <div
           key={p.s}
-          className="dot"
+          className={pinned && px === null && pinned.series === p.s ? 'dot active' : 'dot'}
           style={{
             background: colors[p.s],
             transform: `translate(${((p.x - view.x0) / span) * width - 4}px, ${((hi - p.y) / (hi - lo)) * height - 4}px)`,
           }}
         />
       ))}
-      <div className="tooltip" data-testid="tooltip" style={{ transform: `translateX(${flip ? px - 212 : px + 12}px)` }}>
+      <div className="tooltip" data-testid="tooltip" style={{ transform: `translateX(${flip ? at - 212 : at + 12}px)` }}>
         <div className="tooltip-time">{formatTime(points[0].x)} UTC</div>
         {points.map((p) => (
           <div key={p.s}>

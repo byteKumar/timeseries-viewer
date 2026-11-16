@@ -66,8 +66,23 @@ export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Boun
     };
   }, [plotRef, bounds]);
 
-  const zoomBy = useCallback((factor: number) => setView((v) => zoomView(v, factor, 0.5, bounds)), [bounds]);
+  /** Zoom around `anchor` (fraction across the plot; default the centre). */
+  const zoomBy = useCallback(
+    (factor: number, anchor = 0.5) => setView((v) => zoomView(v, factor, Math.min(1, Math.max(0, anchor)), bounds)),
+    [bounds],
+  );
+  /** Pan just enough that time `t` is inside the view (with a 5% margin). */
+  const ensureVisible = useCallback(
+    (t: number) =>
+      setView((v) => {
+        const margin = (v.x1 - v.x0) * 0.05;
+        if (t < v.x0 + margin) return panView(v, (t - margin - v.x0) / (v.x1 - v.x0), bounds);
+        if (t > v.x1 - margin) return panView(v, (t + margin - v.x1) / (v.x1 - v.x0), bounds);
+        return v;
+      }),
+    [bounds],
+  );
   const reset = useCallback(() => setView({ x0: bounds.min, x1: bounds.max }), [bounds]);
 
-  return { view, dragging, zoomBy, reset };
+  return { view, dragging, zoomBy, reset, ensureVisible };
 }

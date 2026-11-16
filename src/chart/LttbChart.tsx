@@ -42,6 +42,7 @@ export function LttbChart(props: RendererProps & { client: DownsampleClient; dat
   useEffect(() => {
     client.onResult = (r: DownsampleResult) => {
       linesRef.current = r.lines;
+      latest.current.onStats?.(r.stats);
       if (!firstDrawn.current) {
         // First result for this data set: draw now and report the render time.
         firstDrawn.current = true;
@@ -63,7 +64,7 @@ export function LttbChart(props: RendererProps & { client: DownsampleClient; dat
       const x0 = Math.max(dataMin, view.x0 - span * OVERSCAN);
       const x1 = Math.min(dataMax, view.x1 + span * OVERSCAN);
       // Keep POINTS_PER_PIXEL on screen: scale the budget by how much wider than the view we fetch.
-      client.request(x0, x1, Math.round(width * POINTS_PER_PIXEL * ((x1 - x0) / span)));
+      client.request(x0, x1, Math.round(width * POINTS_PER_PIXEL * ((x1 - x0) / span)), view.x0, view.x1);
     };
     if (!firstDrawn.current) {
       send(); // nothing on screen yet: don't wait

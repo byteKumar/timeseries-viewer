@@ -1,5 +1,6 @@
 // Owns the full-resolution data. The main thread transfers the arrays here once
 // (zero-copy) and then only asks for "points for [x0, x1] at N points per series".
+import { rangeStats } from '../a11y/summary';
 import { lttb } from './lttb';
 import type { DownsampleResult, ToWorker } from './protocol';
 import { visibleRange } from './search';
@@ -18,12 +19,15 @@ scope.onmessage = (e: MessageEvent<ToWorker>) => {
   const t0 = performance.now();
   const [start, end] = visibleRange(x, msg.x0, msg.x1);
   const lines = ys.map((y) => lttb(x, y, msg.threshold, start, end));
+  const [vs, ve] = visibleRange(x, msg.viewX0, msg.viewX1);
+  const stats = ys.map((y) => rangeStats(x, y, vs, ve));
   const result: DownsampleResult = {
     id: msg.id,
     x0: msg.x0,
     x1: msg.x1,
     lines,
     visiblePoints: end - start,
+    stats,
     workerMs: performance.now() - t0,
   };
   // Transfer the result buffers back instead of copying them.

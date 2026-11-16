@@ -36,8 +36,8 @@ export class DownsampleClient {
     this.worker.postMessage({ type: 'load', x: d.x, ys: d.ys }, [d.x.buffer, ...d.ys.map((y) => y.buffer)]);
   }
 
-  request(x0: number, x1: number, threshold: number): void {
-    const req = { x0, x1, threshold };
+  request(x0: number, x1: number, threshold: number, viewX0 = x0, viewX1 = x1): void {
+    const req = { x0, x1, threshold, viewX0, viewX1 };
     if (this.inFlight) this.pending = req;
     else this.send(req);
   }
