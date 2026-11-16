@@ -28,7 +28,7 @@ ANYTHING THAT FAILED OR SURPRISED YOU:
 - Final re-run of all renderers on the finished code (second table in RESULTS.md): LTTB render 29 / 72 ms (was 16 / 44) because the worker now also computes exact min/max/trend for the screen-reader summary.
 - Bugs hit and fixed: Math.max(...200k values) overflowed the stack (in a test); End key missed the last point (1.7e12 + 1e-9 === 1.7e12; caught by Playwright); permalinks lost 1 ms to rounding (Playwright); ?series=9 hid every series (manual check); a cancelled-rAF id never reset froze the canvas renderer in dev mode under React StrictMode (code review, confirmed against old code).
 - One final benchmark run was discarded and re-run because it started at load average 6.66; the load < 4 rule was set beforehand (its summary had already been seen, but the rule decided, not the numbers).
-- CI workflow (unit + Playwright + Lighthouse CI) is committed but has never run: GitHub Actions is locked on the account (billing). Everything was run locally.
+- CI (typecheck, unit, Playwright, Lighthouse CI budget) passes on GitHub Actions: https://github.com/byteKumar/timeseries-viewer/actions/runs/43929156757. Its first run failed: 2 canvas Playwright tests timed out at 60 s, because the GPU-less runner rasterises the 2x all-points canvas in software. CI now runs Playwright at 1x pixel density (local runs keep 2x).
 
 REPO: commits pushed? yes
 ```
@@ -76,12 +76,13 @@ LHCI 0.16.1 / Lighthouse 13.6.0, default mobile preset (simulated throttling, 4�
 | before (data generated in one task) — runs 0.81 / 0.92 / 0.91 | 0.91 | 1.00 | 1202 ms | 370 ms | 0 | **failed** (TBT) |
 | after chunked generation — runs 1.00 / 1.00 / 1.00 | 1.00 | 1.00 | 1202 ms | 0 ms | 0 | passed |
 
-The failure came from one ~420 ms long task (simulated) in the main bundle at ~1.2 s into the load: the demo generating 3M points on the main thread. The fix generates the same data in 65,536-sample chunks with `scheduler.yield()` between them; a unit test checks it's identical to the one-shot version. The GitHub Actions workflow runs the same budget, but it has never run because Actions is locked on the account.
+The failure came from one ~420 ms long task (simulated) in the main bundle at ~1.2 s into the load: the demo generating 3M points on the main thread. The fix generates the same data in 65,536-sample chunks with `scheduler.yield()` between them; a unit test checks it's identical to the one-shot version. The same budget also passes in GitHub Actions ([run 43929156757](https://github.com/byteKumar/timeseries-viewer/actions/runs/43929156757)); the runner's Lighthouse numbers aren't used here, because its CPU and conditions differ from the machine above.
 
 ## Tests
 
 - **47 unit tests** (Vitest): generator, viewport math, canvas mapping, LTTB (first/last point, extremes, output length, order, sub-ranges), binary search, permalinks, keyboard logic, range stats, WCAG contrast of the palette.
 - **22 Playwright tests** (installed Chrome 157, production build): zoom/pan/tooltip for each of the 3 renderers, keyboard navigation, the hidden summary, permalink restore (shared URL, reload, broken URL), the 5M button, level-of-detail refresh after resizing and zooming, and the axe scan. They passed 34/34 across a 2× repeat run, before the last 5 tests were added; the final suite passed 22/22.
+- **CI:** all 47 unit and 22 Playwright tests pass on GitHub Actions ([run 43929156757](https://github.com/byteKumar/timeseries-viewer/actions/runs/43929156757), Ubuntu runner without a GPU). There, Playwright runs at devicePixelRatio 1 (see below).
 
 ## Notes per milestone
 
@@ -129,11 +130,12 @@ The failure came from one ~420 ms long task (simulated) in the main bundle at ~1
 - Bug found while checking Storybook: the canvas renderers' unmount cleanup cancelled the queued animation frame but didn't reset its id. In dev mode, React StrictMode mounts twice, so `scheduleDraw()` then believed a frame was always queued and the **canvas renderer never redrew after zooming**. Confirmed against the old code in `npm run dev`, then fixed. Production builds (benchmarks, tests) weren't affected, which is why nothing caught it earlier.
 - Seen once, **not reproduced**: in the Storybook manager, the "zoomed in" story once showed very coarse lines (about 14 points per minute). Five targeted Playwright tests (narrow-then-wide viewport at 0/30/100/400 ms, zoom refresh) all pass, and later loads looked right.
 - Storybook 10.6 stories: LTTB 1M and 5M, canvas, SVG, zoomed-in initial view, hidden series. `npm run build-storybook` builds them.
+- **First real CI run failed** (GitHub Actions run 43921726282, after the account's billing lock cleared): 2 of 22 Playwright tests timed out at 60 s, both for the all-points canvas renderer. Cause, confirmed locally with `--disable-gpu`: without a GPU, Chrome rasterises the canvas in software, and at 2× (a 2396×840 backing store) the first paint took 45,366 ms and each zoom redraw 1,233–10,884 ms, against 334 ms and 122–183 ms at 1× (a one-off diagnostic; its own load pushed the load average to 10). Locally without a GPU at 2× the same tests took 36–51 s. Fix: Playwright runs at devicePixelRatio 1 when `CI` is set; the tests and data size (1M per series) are unchanged. With no GPU at 1×, the suite passed 22/22 locally in 32.1 s, and then on CI ([run 43929156757](https://github.com/byteKumar/timeseries-viewer/actions/runs/43929156757)) in 1.6 min, with the canvas tests at 0.9–2.1 s.
 - Demo deploy to Vercel: skipped for now (needs your account and `npx vercel login`). The demo page with 1M and 5M buttons runs locally with `npm run build && npm run preview`.
 
 ## Not done or not verified
 - No hosted demo yet (Vercel deploy skipped).
-- CI has never run on GitHub (Actions locked by billing); unit tests, Playwright and Lighthouse were run locally only.
+- CI runs the Playwright suite at 1× pixel density only (2× is covered locally and by a unit test). On the runner the SVG tests take up to 32.6 s of the 60 s test timeout, so they have under 2× headroom.
 - No manual screen-reader check (VoiceOver/NVDA).
 - fps is capped by the 60 Hz display and INP by a 40 ms harness floor, so neither can separate the LTTB renderer from anything faster.
 - The causes of SVG's click-vs-wheel gap, canvas's worse 5M INP and the final-code INP rise are inferred from the numbers, not confirmed with a Chrome performance trace.
