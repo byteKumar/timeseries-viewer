@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { TimeSeriesChart, type Renderer } from './chart/TimeSeriesChart';
 import type { View } from './chart/viewport';
-import { describe, type Dataset } from './data/dataset';
-import { generateSeries } from './data/generate';
-import { DownsampleClient } from './lttb/client';
-import { markDataReady, perf } from './perf';
+import { useDataset } from './data/useDataset';
 import { parseUrl, serializeUrl } from './permalink';
 
 const RENDERERS: Renderer[] = ['lttb', 'canvas', 'svg'];
@@ -18,44 +15,9 @@ function readParams() {
   };
 }
 
-interface Loaded {
-  dataset: Dataset;
-  initialView: View | null;
-  initialVisible: boolean[] | null;
-}
-
 export function App() {
   const [{ renderer, n }, setParams] = useState(readParams);
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
-
-  useEffect(() => {
-    setLoaded(null);
-    let client: DownsampleClient | null = null;
-    // Yield one tick so "Generating…" paints before the main thread is busy.
-    const t = setTimeout(() => {
-      const url = parseUrl(location.search); // read the permalink's range and series now
-      const t0 = performance.now();
-      const d = generateSeries(n);
-      perf.genMs = performance.now() - t0;
-      perf.n = n;
-      perf.renderer = renderer;
-      const meta = describe(d); // must run before the arrays are transferred away
-      markDataReady();
-      let dataset: Dataset;
-      if (renderer === 'lttb') {
-        client = new DownsampleClient();
-        client.load(d); // d.x and d.ys are detached after this line
-        dataset = { meta, raw: null, client };
-      } else {
-        dataset = { meta, raw: d, client: null };
-      }
-      setLoaded({ dataset, initialView: url.view, initialVisible: url.visible });
-    }, 0);
-    return () => {
-      clearTimeout(t);
-      client?.terminate();
-    };
-  }, [n, renderer]);
+  const loaded = useDataset(n, renderer, () => parseUrl(location.search));
 
   const update = (next: { renderer?: Renderer; n?: number }) => {
     // A new size has a different time range, so drop the old range from the URL.

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # GitHub's Ubuntu runners ship Google Chrome, which playwright.config.ts uses (channel: 'chrome').
+      - run: npx playwright test
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Fails the job if the budget in lighthouserc.json is missed.
+      - run: npx lhci autorun
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/reports

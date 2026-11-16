@@ -10,11 +10,11 @@ describe('permalink', () => {
       view: { x0: 1_767_225_600_000.4, x1: 1_767_225_660_000 },
       visible: [true, false, true],
     });
-    expect(search).toBe('?n=5000000&renderer=lttb&x0=1767225600000&x1=1767225660000&series=0%2C2');
+    expect(search).toBe('?n=5000000&renderer=lttb&x0=1767225600000.4&x1=1767225660000&series=0%2C2');
     expect(parseUrl(search)).toEqual({
       n: 5_000_000,
       renderer: 'lttb',
-      view: { x0: 1_767_225_600_000, x1: 1_767_225_660_000 },
+      view: { x0: 1_767_225_600_000.4, x1: 1_767_225_660_000 },
       visible: [true, false, true],
     });
   });

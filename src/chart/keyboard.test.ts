@@ -37,6 +37,14 @@ describe('chart keyboard', () => {
     expect(move('End', { series: 1, t: 400 })).toEqual({ series: 1, t: 600 });
   });
 
+  it('End reaches the last point with real epoch-ms timestamps (float precision regression)', () => {
+    const t0 = Date.UTC(2026, 0, 1);
+    const big = Float64Array.from({ length: 11 }, (_, i) => t0 + i * 10);
+    const l = [{ x: big, y: new Float64Array(11) }];
+    const a = keyAction('End', false, null, l, [true], { x0: t0, x1: t0 + 100 });
+    expect(a).toEqual({ kind: 'move', cursor: { series: 0, t: t0 + 100 } });
+  });
+
   it('Up/Down cycle through visible series only, keeping the time', () => {
     expect(move('ArrowDown', { series: 0, t: 400 })).toEqual({ series: 1, t: 400 });
     expect(move('ArrowDown', { series: 0, t: 400 }, false, [true, false, true])).toEqual({ series: 2, t: 400 });

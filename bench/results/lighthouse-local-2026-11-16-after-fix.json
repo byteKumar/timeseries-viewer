@@ -1,0 +1,84 @@
+{
+  "url": "http://localhost:4173/?n=1000000&renderer=lttb",
+  "lighthouse": "13.6.0",
+  "preset": "mobile (LHCI default), simulated throttling, cpuSlowdown 4",
+  "chrome": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+  "loadAvgAtStart": "3.16",
+  "change": "chunked data generation (after the failed run in lighthouse-local-2026-11-16.json)",
+  "budget": {
+    "categories:performance": [
+      "error",
+      {
+        "minScore": 0.9
+      }
+    ],
+    "largest-contentful-paint": [
+      "error",
+      {
+        "maxNumericValue": 2500
+      }
+    ],
+    "total-blocking-time": [
+      "error",
+      {
+        "maxNumericValue": 200
+      }
+    ],
+    "cumulative-layout-shift": [
+      "error",
+      {
+        "maxNumericValue": 0.1
+      }
+    ],
+    "categories:accessibility": [
+      "error",
+      {
+        "minScore": 0.9
+      }
+    ]
+  },
+  "runs": [
+    {
+      "representative": false,
+      "fetchTime": "2026-11-16T17:05:51.276Z",
+      "performance": 1,
+      "accessibility": 1,
+      "fcpMs": 756.1343999999999,
+      "lcpMs": 1206.1344,
+      "tbtMs": 0,
+      "cls": 0,
+      "speedIndexMs": 756.1343999999999,
+      "longTasks": [
+        [
+          "Unattributable",
+          81,
+          611.0672
+        ]
+      ]
+    },
+    {
+      "representative": false,
+      "fetchTime": "2026-11-16T17:06:11.223Z",
+      "performance": 1,
+      "accessibility": 1,
+      "fcpMs": 752.1125999999999,
+      "lcpMs": 1202.1126,
+      "tbtMs": 0,
+      "cls": 0,
+      "speedIndexMs": 752.1125999999999,
+      "longTasks": []
+    },
+    {
+      "representative": true,
+      "fetchTime": "2026-11-16T17:06:01.352Z",
+      "performance": 1,
+      "accessibility": 1,
+      "fcpMs": 752.1379,
+      "lcpMs": 1202.1379,
+      "tbtMs": 0,
+      "cls": 0,
+      "speedIndexMs": 752.1379,
+      "longTasks": []
+    }
+  ]
+}

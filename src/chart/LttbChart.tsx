@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { DownsampleClient } from '../lttb/client';
 import type { DownsampleResult } from '../lttb/protocol';
+import { perf } from '../perf';
 import { drawLines, sizeCanvas } from './drawCanvas';
 import type { RendererProps } from './types';
 
@@ -29,6 +30,8 @@ export function LttbChart(props: RendererProps & { client: DownsampleClient; dat
     const { view, yDomain, width, height, colors, visible } = latest.current;
     const plot = { width, height, dpr: window.devicePixelRatio || 1 };
     drawLines(sizeCanvas(canvasRef.current!, plot), plot, linesRef.current, colors, view, yDomain, visible);
+    // For tests: how many points per series are on screen right now, at what width.
+    perf.drawn = { points: linesRef.current[0]?.x.length ?? 0, width, x0: view.x0, x1: view.x1 };
   };
 
   const scheduleDraw = () => {
@@ -81,7 +84,13 @@ export function LttbChart(props: RendererProps & { client: DownsampleClient; dat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(frame.current);
+      frame.current = 0; // or a remount (e.g. React StrictMode) would think a frame is still queued and never draw
+    },
+    [],
+  );
 
   return <canvas ref={canvasRef} style={{ display: 'block' }} aria-hidden="true" />;
 }

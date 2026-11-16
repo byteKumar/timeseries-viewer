@@ -40,7 +40,13 @@ export function CanvasChart(props: RendererProps & { data: SeriesData }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, width, height, visible]);
 
-  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(frame.current);
+      frame.current = 0; // or a remount (e.g. React StrictMode) would think a frame is still queued and never draw
+    },
+    [],
+  );
 
   return <canvas ref={canvasRef} style={{ display: 'block' }} aria-hidden="true" />;
 }

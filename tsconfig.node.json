@@ -21,6 +21,7 @@
     "vite.config.ts",
     "playwright.config.ts",
     "bench",
-    "tests"
+    "tests",
+    ".storybook"
   ]
 }

@@ -10,7 +10,10 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "bench": "node bench/run.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lighthouse": "npm run build && lhci autorun",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -18,11 +21,14 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@lhci/cli": "^0.16.1",
     "@playwright/test": "^1.65.1",
+    "@storybook/react-vite": "^10.6.7",
     "@types/node": "^26.6.6",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.3.0",
+    "storybook": "^10.6.7",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0",

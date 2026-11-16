@@ -1,5 +1,5 @@
 // Pure keyboard logic for the chart, so it can be unit-tested without a browser.
-import { lowerBound, nearestIndex } from '../lttb/search';
+import { lowerBound, nearestIndex, upperBound } from '../lttb/search';
 import type { Line } from './drawCanvas';
 import type { View } from './viewport';
 
@@ -50,7 +50,9 @@ export function keyAction(key: string, shift: boolean, cursor: Cursor | null, li
     case 'Home':
       return at(lowerBound(x, view.x0));
     case 'End':
-      return at(lowerBound(x, view.x1 + 1e-9) - 1);
+      // Last point <= x1. (An earlier version used lowerBound(x, x1 + 1e-9) - 1, which
+      // is wrong for real timestamps: 1.7e12 + 1e-9 === 1.7e12 in floating point.)
+      return at(upperBound(x, view.x1) - 1);
     case 'ArrowUp':
     case 'ArrowDown': {
       const k = shown.indexOf(series);

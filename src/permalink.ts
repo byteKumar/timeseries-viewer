@@ -1,5 +1,5 @@
 // URL state: ?n=1000000&renderer=lttb&x0=...&x1=...&series=0,2
-// x0/x1 are absolute timestamps in ms; `series` lists the visible series
+// x0/x1 are absolute timestamps in ms (may be fractional); `series` lists the visible series
 // (absent = all visible). Everything is validated, since URLs are user input.
 
 import type { View } from './chart/viewport';
@@ -44,8 +44,10 @@ export function serializeUrl(search: string, patch: Partial<UrlState>): string {
   if (patch.n !== undefined) setOrDelete(p, 'n', patch.n === null ? null : String(patch.n));
   if (patch.renderer !== undefined) setOrDelete(p, 'renderer', patch.renderer);
   if (patch.view !== undefined) {
-    setOrDelete(p, 'x0', patch.view ? String(Math.round(patch.view.x0)) : null);
-    setOrDelete(p, 'x1', patch.view ? String(Math.round(patch.view.x1)) : null);
+    // Full precision: String(number) round-trips exactly, so a reload shows the same
+    // range to the millisecond. (Rounding to whole ms made restored labels differ by 1 ms.)
+    setOrDelete(p, 'x0', patch.view ? String(patch.view.x0) : null);
+    setOrDelete(p, 'x1', patch.view ? String(patch.view.x1) : null);
   }
   if (patch.visible !== undefined) {
     const v = patch.visible;

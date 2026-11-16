@@ -17,6 +17,8 @@ export interface TsvPerf {
   lodRoundTripMs?: number[];
   /** LTTB renderer: time spent downsampling inside the worker, per request. */
   workerMs?: number[];
+  /** LTTB renderer: points per series (incl. overscan) and plot width of the last draw. */
+  drawn?: { points: number; width: number; x0: number; x1: number };
 }
 
 declare global {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSeries, SAMPLE_INTERVAL_MS, START_MS, yExtent } from './generate';
+import { generateSeries, generateSeriesChunked, SAMPLE_INTERVAL_MS, START_MS, yExtent } from './generate';
 
 describe('generateSeries', () => {
   it('returns 3 series of the requested length with shared timestamps', () => {
@@ -29,6 +29,20 @@ describe('generateSeries', () => {
     const { ys } = generateSeries(200_000);
     const spikes = ys[0].filter((v) => Math.abs(v) > 3).length;
     expect(spikes).toBeGreaterThan(0);
+  });
+
+  it('the chunked version produces exactly the same data', async () => {
+    const a = generateSeries(10_007, 3);
+    const b = (await generateSeriesChunked(10_007, 3, undefined, 1_000))!;
+    expect(Array.from(b.x)).toEqual(Array.from(a.x));
+    for (let s = 0; s < 3; s++) expect(Array.from(b.ys[s])).toEqual(Array.from(a.ys[s]));
+  });
+
+  it('the chunked version stops when aborted', async () => {
+    const ctl = new AbortController();
+    const p = generateSeriesChunked(100_000, 1, ctl.signal, 1_000);
+    ctl.abort();
+    expect(await p).toBeNull();
   });
 
   it('rejects bad sizes', () => {

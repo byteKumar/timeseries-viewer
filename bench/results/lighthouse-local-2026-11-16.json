@@ -1,0 +1,116 @@
+{
+  "url": "http://localhost:4173/?n=1000000&renderer=lttb",
+  "lighthouse": "13.6.0",
+  "preset": "mobile (LHCI default), simulated throttling, cpuSlowdown 4",
+  "chrome": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+  "loadAvgAtStart": "2.22",
+  "budget": {
+    "categories:performance": [
+      "error",
+      {
+        "minScore": 0.9
+      }
+    ],
+    "largest-contentful-paint": [
+      "error",
+      {
+        "maxNumericValue": 2500
+      }
+    ],
+    "total-blocking-time": [
+      "error",
+      {
+        "maxNumericValue": 200
+      }
+    ],
+    "cumulative-layout-shift": [
+      "error",
+      {
+        "maxNumericValue": 0.1
+      }
+    ],
+    "categories:accessibility": [
+      "error",
+      {
+        "minScore": 0.9
+      }
+    ]
+  },
+  "result": "FAILED total-blocking-time (370 > 200)",
+  "runs": [
+    {
+      "representative": false,
+      "fetchTime": "2026-11-16T16:48:05.241Z",
+      "performance": 0.81,
+      "accessibility": 1,
+      "fcpMs": 760.6668,
+      "lcpMs": 1210.6668,
+      "tbtMs": 782,
+      "cls": 0,
+      "speedIndexMs": 955.7948000771714,
+      "longTasks": [
+        [
+          "http://localhost:4173/assets/index-C_cQ5lSW.js",
+          446,
+          1210.6668
+        ],
+        [
+          "http://localhost:4173/assets/index-C_cQ5lSW.js",
+          436,
+          1656.6668
+        ],
+        [
+          "Unattributable",
+          69,
+          611.3334
+        ]
+      ]
+    },
+    {
+      "representative": false,
+      "fetchTime": "2026-11-16T16:48:15.647Z",
+      "performance": 0.92,
+      "accessibility": 1,
+      "fcpMs": 751.9540999999999,
+      "lcpMs": 1201.9541,
+      "tbtMs": 363,
+      "cls": 0,
+      "speedIndexMs": 751.9540999999999,
+      "longTasks": [
+        [
+          "http://localhost:4173/assets/index-C_cQ5lSW.js",
+          413,
+          1201.9541
+        ],
+        [
+          "Unattributable",
+          64,
+          600.97705
+        ]
+      ]
+    },
+    {
+      "representative": true,
+      "fetchTime": "2026-11-16T16:48:25.516Z",
+      "performance": 0.91,
+      "accessibility": 1,
+      "fcpMs": 751.8268,
+      "lcpMs": 1201.8268,
+      "tbtMs": 370,
+      "cls": 0,
+      "speedIndexMs": 751.8268,
+      "longTasks": [
+        [
+          "http://localhost:4173/assets/index-C_cQ5lSW.js",
+          420,
+          1201.8268
+        ],
+        [
+          "Unattributable",
+          65,
+          600.9134
+        ]
+      ]
+    }
+  ]
+}

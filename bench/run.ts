@@ -37,7 +37,7 @@ function preflight(): string {
     '^(ba|z)?sh [^ ]*bench/run-(load|concurrency)',
     '^[^ ]*[Pp]ython[^ ]* .*(train|torch)',
     '^node .*bench/',
-    '^[^ ]*[l]ighthouse',
+    '^[^ ]*node[^ ]* [^ ]*(lhci|lighthouse)',
   ];
   const busy: string[] = [];
   for (const p of patterns) {
@@ -54,6 +54,10 @@ function preflight(): string {
   }
   const load = execSync('sysctl -n vm.loadavg', { encoding: 'utf8' }).trim();
   console.log(`load average ${load}`);
+  // 1-minute load average must be under 4 (on 8 cores). It lags, so a run
+  // started right after another heavy job is refused even if that job just ended.
+  const oneMinute = Number(load.replace(/[{}]/g, '').trim().split(/\s+/)[0]);
+  if (oneMinute >= 4) busy.push(`1-minute load average ${oneMinute} >= 4`);
   if (busy.length) {
     console.log('Other heavy processes are running:\n  ' + busy.join('\n  '));
     if (!args.force) {
