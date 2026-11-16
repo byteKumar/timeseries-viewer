@@ -1,0 +1,10 @@
+node_modules
+dist
+bench/results/raw
+test-results
+playwright-report
+.lighthouseci
+storybook-static
+.vercel
+.DS_Store
+.claude
