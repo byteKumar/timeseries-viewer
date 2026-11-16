@@ -15,6 +15,7 @@ Machine: Apple M3 (8 cores), 16 GB RAM, macOS. "1M points" means **each of the 3
 |---|---|---|---|---|---|---|---|---|
 | SVG baseline (milestone 1) | 898 | 19.0 | 136 | 2564 | 4522 | 2.8 | 136 | 5194 |
 | canvas, all points (milestone 2) | 136 | 39.8 | 120 | 123 | 382 | 13.5 | 224 | 3019 |
+| canvas + LTTB worker (milestone 3) | 16 | 60.1 | 40 | 0 | 44 | 59.9 | 40 | 0 |
 
 ## Notes per milestone
 
@@ -28,3 +29,17 @@ Machine: Apple M3 (8 cores), 16 GB RAM, macOS. "1M points" means **each of the 3
 - **INP got worse at 5M (136 → 224 ms).** Each zoom click now runs a full redraw of 15M `lineTo` calls on the main thread before the next frame, and INP includes that. With SVG, the click only changed the `viewBox` attribute on the main thread. Its heavy work (hit testing on wheel/pointer events, rasterizing) didn't land inside a button click's interaction the same way. Not verified with a trace.
 - The first 1M run's render (338 ms) was much slower than runs 2 and 3 (134, 136 ms); the median hides that cold-start run, and the raw value is in the JSON.
 - Conditions: a Chrome 156 helper (the Claude desktop app's built-in browser) was using ~27% of one core when the run started. Below the harness's "busy" threshold, but not zero.
+
+### Milestone 3: LTTB in a Web Worker (2026-11-16, load average 3.25 at start)
+- The worker gets the raw arrays once (transferred, not copied) and returns ~2 × plot width points per series (2,396 for this 1,198 px plot). The main thread draws ~7,200 points instead of 3M or 15M.
+- **Both interaction metrics are now at the limits of the measurement setup, not of the code:**
+  - **fps 60 is the display's refresh rate.** The page gets 62 rAF callbacks per second when idle on this 60 Hz built-in display, so fps can't go higher and doesn't separate further improvements.
+  - **INP 40 ms is the floor of this harness.** A one-off check: 10 clicks on a button that only re-renders (re-clicking the already-selected "1M points") also gave INP = 40 ms. Event Timing durations are rounded to 8 ms. This check ran at load average 5.38, above the harness threshold, so only the 40 ms floor is taken from it, and its other numbers aren't reported.
+- Long tasks: none at all during the 5 s scripted interaction at either size (block ms = 0, 0 long tasks in all 6 runs).
+- The scripted interaction got through 73–74 wheel events and 140 drag steps at both sizes (canvas at 5M: 10 and ~20).
+- Worker timings (median of per-run medians; all requests in a run: initial, INP clicks, scripted interaction):
+  - 1M: worker downsample 5.3 ms, request→result on the main thread 6.6 ms (max 39 ms), ~226 requests per run.
+  - 5M: worker downsample 11.5 ms, request→result 14.9 ms (max 38 ms), ~204 requests per run.
+  - While a request is in flight, the chart redraws the previous points stretched to the new view, so the frame after an input is fast; full detail arrives 1–2 frames later. INP measures the first of those, not the full-detail one.
+- The first 1M run's render (62 ms) was slower than runs 2 and 3 (16, 15 ms): worker startup and code compilation on a cold browser.
+- Bug found while writing tests: `Math.max(...y)` over 200,000 values throws "Maximum call stack size exceeded" (spread passes every element as an argument). The test now uses a loop. LTTB itself kept all 6 global extremes of the generated data.

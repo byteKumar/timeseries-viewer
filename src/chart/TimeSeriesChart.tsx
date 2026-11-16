@@ -1,24 +1,28 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { SAMPLE_INTERVAL_MS, yExtent, type SeriesData } from '../data/generate';
+import { SAMPLE_INTERVAL_MS } from '../data/generate';
+import type { Dataset } from '../data/dataset';
 import { afterNextPaint, markPainted } from '../perf';
 import { CanvasChart } from './CanvasChart';
+import { LttbChart } from './LttbChart';
 import { SvgChart } from './SvgChart';
 import { BUTTON_ZOOM, useViewport } from './useViewport';
 import type { Bounds } from './viewport';
 
-export type Renderer = 'svg' | 'canvas';
+export type Renderer = 'svg' | 'canvas' | 'lttb';
 
 export const SERIES_COLORS = ['#0b62a4', '#b4372a', '#2e7d32'];
 const HEIGHT = 420;
 
 interface Props {
-  data: SeriesData;
+  dataset: Dataset;
   renderer: Renderer;
 }
 
-export function TimeSeriesChart({ data, renderer }: Props) {
+export function TimeSeriesChart({ dataset, renderer }: Props) {
+  const { meta, raw, client } = dataset;
   const plotRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(800);
+  // Measured before any renderer mounts, so no renderer draws at a guessed width first.
+  const [width, setWidth] = useState<number | null>(null);
 
   useLayoutEffect(() => {
     const el = plotRef.current;
@@ -30,17 +34,16 @@ export function TimeSeriesChart({ data, renderer }: Props) {
   }, []);
 
   const bounds = useMemo<Bounds>(
-    () => ({ min: data.x[0], max: data.x[data.x.length - 1], minSpan: 50 * SAMPLE_INTERVAL_MS }),
-    [data],
+    () => ({ min: meta.xMin, max: meta.xMax, minSpan: 50 * SAMPLE_INTERVAL_MS }),
+    [meta],
   );
-  const yDomain = useMemo(() => yExtent(data.ys), [data]);
   const { view, zoomBy, reset } = useViewport(plotRef, bounds);
 
   // Renderers call this once they have put the current data on screen;
   // we then wait for that frame to be painted and record the render time.
   const onDrawn = useCallback(() => afterNextPaint(markPainted), []);
 
-  const rendererProps = { data, colors: SERIES_COLORS, view, yDomain, width, height: HEIGHT, onDrawn };
+  const common = { colors: SERIES_COLORS, view, yDomain: meta.yDomain, width: width ?? 0, height: HEIGHT, onDrawn };
 
   return (
     <div className="chart">
@@ -59,11 +62,12 @@ export function TimeSeriesChart({ data, renderer }: Props) {
         </span>
       </div>
       <div ref={plotRef} className="plot" data-testid="plot" style={{ height: HEIGHT }}>
-        {renderer === 'svg' && <SvgChart {...rendererProps} />}
-        {renderer === 'canvas' && <CanvasChart {...rendererProps} />}
+        {width !== null && raw && renderer === 'svg' && <SvgChart data={raw} {...common} />}
+        {width !== null && raw && renderer === 'canvas' && <CanvasChart data={raw} {...common} />}
+        {width !== null && client && renderer === 'lttb' && <LttbChart client={client} {...common} />}
       </div>
       <ul className="legend">
-        {data.names.map((name, i) => (
+        {meta.names.map((name, i) => (
           <li key={name}>
             <span className="swatch" style={{ background: SERIES_COLORS[i] }} /> {name}
           </li>

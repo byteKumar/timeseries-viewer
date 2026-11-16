@@ -80,6 +80,11 @@ async function startServer() {
 }
 
 // ---------- 3. One measured run ----------
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
 interface RunResult {
   renderer: string;
   n: number;
@@ -98,6 +103,10 @@ interface RunResult {
   longTaskTotalMs?: number;
   wheelEvents?: number;
   dragSteps?: number;
+  lodRequests?: number;
+  lodRoundTripMedianMs?: number;
+  lodRoundTripMaxMs?: number;
+  workerMedianMs?: number;
 }
 
 const settle = () =>
@@ -183,6 +192,14 @@ async function measure(browser: Awaited<ReturnType<typeof chromium.launch>>, ren
     res.blockingMs = w.long.reduce((a, d) => a + Math.max(0, d - 50), 0);
     res.wheelEvents = wheelEvents;
     res.dragSteps = dragSteps;
+    // LTTB renderer only: worker timings over the whole run (load + INP clicks + scripted interaction).
+    const lod = await page.evaluate(() => ({ rt: window.__tsv.lodRoundTripMs ?? [], w: window.__tsv.workerMs ?? [] }));
+    if (lod.rt.length) {
+      res.lodRequests = lod.rt.length;
+      res.lodRoundTripMedianMs = median(lod.rt);
+      res.lodRoundTripMaxMs = Math.max(...lod.rt);
+      res.workerMedianMs = median(lod.w);
+    }
   } catch (e) {
     res.error = crashed ? 'page crashed (likely out of memory)' : String((e as Error).message).split('\n')[0];
   } finally {
@@ -192,11 +209,6 @@ async function measure(browser: Awaited<ReturnType<typeof chromium.launch>>, ren
 }
 
 // ---------- 4. Main ----------
-const median = (xs: number[]) => {
-  const s = [...xs].sort((a, b) => a - b);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-};
 
 const conditions = preflight();
 const server = await startServer();

@@ -13,8 +13,12 @@ export const BUTTON_ZOOM = 0.5;
 export function useViewport(plotRef: RefObject<HTMLElement | null>, bounds: Bounds) {
   const [view, setView] = useState<View>({ x0: bounds.min, x1: bounds.max });
 
-  // New data -> show all of it.
-  useEffect(() => setView({ x0: bounds.min, x1: bounds.max }), [bounds.min, bounds.max]);
+  // New data -> show all of it. Keep the same object if nothing changed, so
+  // effects that depend on `view` (like a worker request) don't fire twice.
+  useEffect(
+    () => setView((v) => (v.x0 === bounds.min && v.x1 === bounds.max ? v : { x0: bounds.min, x1: bounds.max })),
+    [bounds.min, bounds.max],
+  );
 
   useEffect(() => {
     const el = plotRef.current;

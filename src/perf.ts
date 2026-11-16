@@ -13,6 +13,10 @@ export interface TsvPerf {
   maxInteractionMs?: number;
   /** Interactions seen by that observer (only ones lasting >= 16 ms are reported). */
   interactions?: number;
+  /** LTTB renderer: request -> result received on the main thread, per request. */
+  lodRoundTripMs?: number[];
+  /** LTTB renderer: time spent downsampling inside the worker, per request. */
+  workerMs?: number[];
 }
 
 declare global {

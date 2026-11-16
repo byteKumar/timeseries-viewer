@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { generateSeries, type SeriesData } from './data/generate';
+import { generateSeries } from './data/generate';
+import { describe, type Dataset } from './data/dataset';
+import { DownsampleClient } from './lttb/client';
 import { TimeSeriesChart, type Renderer } from './chart/TimeSeriesChart';
 import { markDataReady, perf } from './perf';
 
-const RENDERERS: Renderer[] = ['svg', 'canvas'];
+const RENDERERS: Renderer[] = ['lttb', 'canvas', 'svg'];
 const SIZES = [1_000_000, 5_000_000];
 
 function readParams() {
@@ -18,10 +20,11 @@ function readParams() {
 
 export function App() {
   const [{ renderer, n }, setParams] = useState(readParams);
-  const [data, setData] = useState<SeriesData | null>(null);
+  const [dataset, setDataset] = useState<Dataset | null>(null);
 
   useEffect(() => {
-    setData(null);
+    setDataset(null);
+    let client: DownsampleClient | null = null;
     // Yield one tick so "Generating…" paints before the main thread is busy.
     const t = setTimeout(() => {
       const t0 = performance.now();
@@ -29,10 +32,20 @@ export function App() {
       perf.genMs = performance.now() - t0;
       perf.n = n;
       perf.renderer = renderer;
+      const meta = describe(d); // must run before the arrays are transferred away
       markDataReady();
-      setData(d);
+      if (renderer === 'lttb') {
+        client = new DownsampleClient();
+        client.load(d); // d.x and d.ys are detached after this line
+        setDataset({ meta, raw: null, client });
+      } else {
+        setDataset({ meta, raw: d, client: null });
+      }
     }, 0);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      client?.terminate();
+    };
   }, [n, renderer]);
 
   const update = (next: { renderer?: Renderer; n?: number }) => {
@@ -62,7 +75,7 @@ export function App() {
         </label>
         <span>3 series × {n.toLocaleString('en-US')} points each</span>
       </p>
-      {data ? <TimeSeriesChart data={data} renderer={renderer} /> : <p role="status">Generating data…</p>}
+      {dataset ? <TimeSeriesChart dataset={dataset} renderer={renderer} /> : <p role="status">Generating data…</p>}
     </main>
   );
 }

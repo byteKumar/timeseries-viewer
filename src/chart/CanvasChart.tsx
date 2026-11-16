@@ -28,7 +28,7 @@ export function CanvasChart({ data, colors, view, yDomain, width, height, onDraw
     const { data, view, yDomain, width, height } = latest.current;
     const plot: Plot = { width, height, dpr: window.devicePixelRatio || 1 };
     const ctx = sizeCanvas(canvasRef.current!, plot);
-    drawLines(ctx, plot, data.x, data.ys, colors, view, yDomain);
+    drawLines(ctx, plot, data.ys.map((y) => ({ x: data.x, y })), colors, view, yDomain);
   };
 
   // New data: draw synchronously so the first paint already shows it.

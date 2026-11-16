@@ -26,19 +26,24 @@ export function sizeCanvas(canvas: HTMLCanvasElement, p: Plot): CanvasRenderingC
   return ctx;
 }
 
+export interface Line {
+  x: ArrayLike<number>;
+  y: ArrayLike<number>;
+}
+
 /**
- * Stroke each series as one path. `x` and every `ys[i]` must be the same length.
- * Cost is proportional to the number of points passed in.
+ * Stroke each line as one path. Each line has its own x array because LTTB
+ * keeps different points for different series. Cost is proportional to the
+ * number of points passed in.
  */
 export function drawLines(
   ctx: CanvasRenderingContext2D,
   p: Plot,
-  x: ArrayLike<number>,
-  ys: ArrayLike<number>[],
+  lines: Line[],
   colors: string[],
   view: View,
   yDomain: [number, number],
-  visible: boolean[] = ys.map(() => true),
+  visible: boolean[] = lines.map(() => true),
 ): void {
   ctx.clearRect(0, 0, p.width, p.height);
   const sx = p.width / (view.x1 - view.x0);
@@ -46,9 +51,10 @@ export function drawLines(
   const sy = p.height / (hi - lo);
   ctx.lineWidth = 1;
   ctx.lineJoin = 'round';
-  for (let s = 0; s < ys.length; s++) {
+  for (let s = 0; s < lines.length; s++) {
     if (!visible[s]) continue;
-    const y = ys[s];
+    const { x, y } = lines[s];
+    if (x.length === 0) continue;
     ctx.strokeStyle = colors[s];
     ctx.beginPath();
     ctx.moveTo((x[0] - view.x0) * sx, (hi - y[0]) * sy);

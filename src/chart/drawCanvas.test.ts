@@ -23,7 +23,7 @@ describe('drawLines', () => {
 
   it('maps the view to the plot width and flips y so larger values are higher', () => {
     const { ctx, calls } = fakeCtx();
-    drawLines(ctx, plot, [0, 5, 10], [[0, 5, 10]], ['#000'], { x0: 0, x1: 10 }, [0, 10]);
+    drawLines(ctx, plot, [{ x: [0, 5, 10], y: [0, 5, 10] }], ['#000'], { x0: 0, x1: 10 }, [0, 10]);
     expect(calls).toEqual([
       ['M', 0, 100],
       ['L', 100, 50],
@@ -33,13 +33,13 @@ describe('drawLines', () => {
 
   it('places points outside the view off-canvas rather than dropping them', () => {
     const { ctx, calls } = fakeCtx();
-    drawLines(ctx, plot, [0, 10, 20], [[0, 0, 0]], ['#000'], { x0: 10, x1: 20 }, [0, 1]);
+    drawLines(ctx, plot, [{ x: [0, 10, 20], y: [0, 0, 0] }], ['#000'], { x0: 10, x1: 20 }, [0, 1]);
     expect(calls.map((c) => c[1])).toEqual([-200, 0, 200]);
   });
 
   it('skips hidden series', () => {
     const { ctx } = fakeCtx();
-    drawLines(ctx, plot, [0, 1], [[0, 1], [1, 0]], ['#000', '#111'], { x0: 0, x1: 1 }, [0, 1], [true, false]);
+    drawLines(ctx, plot, [{ x: [0, 1], y: [0, 1] }, { x: [0, 1], y: [1, 0] }], ['#000', '#111'], { x0: 0, x1: 1 }, [0, 1], [true, false]);
     expect(ctx.strokes).toBe(1);
   });
 });
