@@ -17,33 +17,28 @@ All numbers are measured; method and raw runs are in [RESULTS.md](RESULTS.md).
 ## Architecture
 
 ```mermaid
-flowchart LR
-  URL["URL state<br/>x0, x1, series"]
-
-  subgraph Main["Main thread"]
-    Gen["generateSeriesChunked<br/>3 series as Float64Array<br/>chunked, yields to the browser"]
-    Chart["TimeSeriesChart<br/>view state, wheel zoom, drag pan"]
-    Draw["LttbChart<br/>Canvas 2D draw"]
-    Cross["Crosshair<br/>nearest point by binary search"]
-    A11y["Keyboard cursor, aria-live announcer,<br/>hidden range summary"]
-  end
+flowchart TB
+  URL["URL permalink state<br/>x0, x1, series"]
+  Gen["Data generator<br/>3 x Float64Array, chunked"]
+  Chart["TimeSeriesChart<br/>view state, wheel zoom, drag pan"]
+  Draw["Canvas 2D renderer"]
+  Cross["Crosshair tooltip<br/>binary search"]
+  A11y["Keyboard + aria-live<br/>+ range summary"]
 
   subgraph Worker["Web Worker"]
-    Raw["Raw arrays<br/>owned by the worker"]
-    Lttb["LTTB on the requested range<br/>+ exact min, max, trend"]
+    Raw["Raw arrays"] --> Lttb["LTTB + exact min, max, trend"]
   end
 
-  URL -->|"initial view and series"| Chart
-  Gen -->|"bounds and y-range computed first"| Chart
-  Gen -->|"postMessage with transfer list<br/>zero-copy"| Raw
-  Raw --> Lttb
+  Gen -- "transfer, zero-copy" --> Raw
+  Gen -- "bounds, y-range" --> Chart
+  URL -- "initial view" --> Chart
   Chart --> Draw
   Chart --> Cross
   Chart --> A11y
-  Draw -->|"LOD request: view + overscan<br/>100 ms debounce, latest wins"| Lttb
-  Lttb -->|"about 2 points per CSS px per series<br/>transferred back"| Draw
-  Lttb -->|"stats for the visible range"| A11y
-  Chart -->|"debounced 250 ms"| URL
+  Draw -- "LOD request<br/>debounced, latest wins" --> Lttb
+  Lttb -- "~2 points per px per series" --> Draw
+  Lttb -- "stats" --> A11y
+  Chart -. "debounced write" .-> URL
 ```
 
 | module | what it does |
